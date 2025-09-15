@@ -22,14 +22,11 @@ const ContextProvider = ({ children }) => {
     const verifyUser = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `${BACKAPI}/api/auth/verify`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await axios.get(`${BACKAPI}/api/auth/verify`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (res.data.success) {
           if (res.data.user) {
             setUser(res.data.user.name);

@@ -16,19 +16,7 @@ function App() {
   return (
     <Router>
       {/* HEADER */}
-      <header className="bg-white border-b border-emerald-300 py-4 px-6 shadow-sm flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-emerald-700">
-          منصة الحلقات
-        </h1>
-        <nav className="flex gap-4">
-          <Link to="/" className="text-sm text-emerald-600 hover:underline">
-            الصفحة الرئيسية
-          </Link>
-          <Link to="/admin" className="text-sm text-emerald-600 hover:underline">
-            لوحة التحكم
-          </Link>
-        </nav>
-      </header>
+      
 
       {/* ROUTES */}
       <Routes>

@@ -38,7 +38,7 @@ export default function GroupsPanel() {
     fetchStudents();
     fetchGroups();
     if (!token) {
-      navigate("/login")
+      navigate("/login");
     }
   }, []);
 
@@ -79,13 +79,13 @@ export default function GroupsPanel() {
       setSelected(new Set(students.map((s) => s._id ?? s.id)));
     }
   }
-const to12HourFormat = (time24) => {
-  if (!time24) return "";
-  const [hours, minutes] = time24.split(":").map(Number);
-  const period = hours >= 12 ? "PM" : "AM";
-  const hours12 = hours % 12 || 12; // 0 becomes 12 for midnight
-  return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
-};
+  const to12HourFormat = (time24) => {
+    if (!time24) return "";
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hours12 = hours % 12 || 12; // 0 becomes 12 for midnight
+    return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
   async function handleCreateGroup(e) {
     e.preventDefault();
     setError("");
@@ -129,7 +129,6 @@ const to12HourFormat = (time24) => {
     }
   }
   async function handleDeleteGroup(group) {
-
     try {
       await axios.delete(`${BACKAPI}/api/groups/${group._id ?? group.id}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -363,7 +362,6 @@ const to12HourFormat = (time24) => {
                 </td>
 
                 {/* Number of students */}
-                
 
                 {/* Actions: Start & Delete */}
                 <td className="p-2">
@@ -382,7 +380,7 @@ const to12HourFormat = (time24) => {
                       className="bg-red-600 text-white px-3 py-2 rounded"
                       title="حذف"
                     >
-                      <FaTrash/>
+                      <FaTrash />
                     </button>
                   </div>
                 </td>
@@ -395,39 +393,38 @@ const to12HourFormat = (time24) => {
                   colSpan={4}
                   className="p-4 text-sm text-emerald-500 text-center"
                 >
-                  لا توجد حلقات حتى الآن.
+                  لحظات... لو مفيش حاجة ظاهرة اعمل حلقة
                 </td>
               </tr>
             )}
           </tbody>
         </table>
         {confirmDelete && (
-  <div className="fixed inset-0 flex items-center justify-center bg-[#00000040] bg-opacity-50">
-    <div className="bg-white rounded shadow p-6 w-80 text-center">
-      <p className="text-gray-700 mb-4">
-        هل أنت متأكد من حذف هذه الحلقة؟
-      </p>
-      <div className="flex justify-around">
-        <button
-          onClick={async () => {
-            await handleDeleteGroup({ _id: confirmDelete });
-            setConfirmDelete(null);
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded"
-        >
-          نعم، احذف
-        </button>
-        <button
-          onClick={() => setConfirmDelete(null)}
-          className="bg-gray-300 px-4 py-2 rounded"
-        >
-          إلغاء
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+          <div className="fixed inset-0 flex items-center justify-center bg-[#00000040] bg-opacity-50">
+            <div className="bg-white rounded shadow p-6 w-80 text-center">
+              <p className="text-gray-700 mb-4">
+                هل أنت متأكد من حذف هذه الحلقة؟
+              </p>
+              <div className="flex justify-around">
+                <button
+                  onClick={async () => {
+                    await handleDeleteGroup({ _id: confirmDelete });
+                    setConfirmDelete(null);
+                  }}
+                  className="bg-red-600 text-white px-4 py-2 rounded"
+                >
+                  نعم، احذف
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="bg-gray-300 px-4 py-2 rounded"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

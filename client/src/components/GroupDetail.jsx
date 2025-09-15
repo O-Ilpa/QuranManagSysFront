@@ -3,6 +3,7 @@ import { Navigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/solid";
 import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function GroupDetail() {
   const { id } = useParams();
@@ -10,7 +11,7 @@ export default function GroupDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
-  const [success, setSuccess] = useState()
+  const [success, setSuccess] = useState();
   const navigate = useNavigate();
 
   const BACKAPI =
@@ -19,11 +20,11 @@ export default function GroupDetail() {
       : import.meta.env.VITE_DEVELOPMENT_API;
   const token = localStorage.getItem("token");
 
-    useEffect(() => {
-      if (!token) {
-      navigate("/login")
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
     }
-    })
+  });
 
   async function handleStartLesson(group) {
     setError("");
@@ -88,17 +89,48 @@ export default function GroupDetail() {
       setStarting(false);
     }
   }
-  if (loading) return <p className="p-4">جاري التحميل...</p>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-emerald-50">
+        <svg
+          className="animate-spin h-16 w-16 text-emerald-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8v8H4z"
+          />
+        </svg>
+      </div>
+    );
   if (error) return <p className="p-4 text-red-600">{error}</p>;
   if (!group) return <p className="p-4">لم يتم العثور على الحلقة.</p>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100">
       {/* Header */}
-      <header className="bg-emerald-700 text-white p-4 shadow-md">
+      <header className="bg-emerald-700 text-white p-4 shadow-md flex justify-between">
         <h1 className="text-xl font-bold">تفاصيل الحلقة</h1>
+        <nav className="flex gap-4">
+          <Link to="/" className="text-sm text-white underline">
+            الرئيسية
+          </Link>
+          <Link to="/admin" className="text-sm text-whtie underline">
+            التحكم
+          </Link>
+        </nav>
       </header>
-
 
       {/* show inline error */}
       {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
@@ -109,15 +141,15 @@ export default function GroupDetail() {
           <h2 className="text-lg font-bold text-emerald-800 mb-2">
             {group.title}
           </h2>
-          <p className="text-sm text-emerald-600">
+          <p className="text-sm text-emerald-800">
             {group.day} - {group.time}
           </p>
           <button
-                  onClick={() => handleStartLesson(group)}
-                  className="w-full bg-emerald-600 text-white py-2 mt-2 rounded-lg hover:bg-emerald-700"
-                >
-                  بدء
-                </button>
+            onClick={() => handleStartLesson(group)}
+            className="w-full bg-emerald-600 text-white py-2 mt-2 rounded-lg hover:bg-emerald-700"
+          >
+            بدء
+          </button>
         </section>
 
         {/* Students */}
@@ -125,12 +157,11 @@ export default function GroupDetail() {
           <h3 className="text-lg font-semibold text-emerald-800 mb-4">
             الطلاب
           </h3>
-          
+
           {group.students.length === 0 ? (
             <p className="text-sm text-emerald-500">
               لا يوجد طلاب في هذه الحلقة.
             </p>
-            
           ) : (
             <ul className="space-y-3">
               {group.students.map((s) => (
@@ -145,10 +176,12 @@ export default function GroupDetail() {
 }
 function StudentAccordion({ student }) {
   const [open, setOpen] = useState(false);
-const navigate = useNavigate()
+  const navigate = useNavigate();
   function formatNextRevision(nextRev) {
     if (!nextRev || !nextRev.surah || !Array.isArray(nextRev.surah)) return "";
-    return nextRev.surah.map((sur, i) => `${sur}: ${nextRev.fromAyah[i]}-${nextRev.toAyah[i]}`).join("، ");
+    return nextRev.surah
+      .map((sur, i) => `${sur}: ${nextRev.fromAyah[i]}-${nextRev.toAyah[i]}`)
+      .join("، ");
   }
 
   return (
@@ -156,9 +189,15 @@ const navigate = useNavigate()
       {/* Accordion Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex justify-between items-center p-3 bg-emerald-100 hover:bg-emerald-200 transition text-emerald-900 font-medium"
+        className="w-full flex justify-between items-center p-3 shadow-2xl hover:bg-emerald-200 transition text-emerald-900 font-medium"
       >
-        <div onClick={() =>{ navigate(`/students/${student._id}`)}}><span className="underline cursor-pointer p-1" >{student.name}</span></div>
+        <div
+          onClick={() => {
+            navigate(`/students/${student._id}`);
+          }}
+        >
+          <span className="underline cursor-pointer p-1">{student.name}</span>
+        </div>
         {open ? (
           <ChevronUpIcon className="w-5 h-5 text-emerald-700" />
         ) : (
@@ -186,7 +225,11 @@ const navigate = useNavigate()
                   {h.revised ? "✔️" : "❌"}
                 </p>
                 {h.notes && <p>📝 ملاحظات: {h.notes}</p>}
-                {h.nextRevision && <p>➡️ المراجعة القادمة: {formatNextRevision(h.nextRevision)}</p>}
+                {h.nextRevision && (
+                  <p>
+                    ➡️ المراجعة القادمة: {formatNextRevision(h.nextRevision)}
+                  </p>
+                )}
               </div>
             ))
           )}

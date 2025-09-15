@@ -49,7 +49,7 @@ const LogIn = () => {
       <div className=" flex justify-center items-center min-h-screen bg-gray-100">
         <div className="rounded-2xl shadow p-6 w-80 bg-white">
           <h2 className="text-2xl font-bold mb-4">تسجيل الدخول</h2>
-          <p className="text-red-700">{message.message}</p>
+          <p className="text-red-700">{message}</p>
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-gray-700" htmlFor="email">

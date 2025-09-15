@@ -24,7 +24,7 @@ export default function StudentsPanel() {
   useEffect(() => {
     fetchUsers();
     if (!token) {
-      navigate("/login")
+      navigate("/login");
     }
   }, []);
 
@@ -263,7 +263,8 @@ export default function StudentsPanel() {
                     className="w-8 h-8 rounded-full mx-auto"
                   />
                 </td>
-                <td onClick={() => navigate(`/students/${user._id}`)}
+                <td
+                  onClick={() => navigate(`/students/${user._id}`)}
                   className="p-1 font-medium text-emerald-900 underline cursor-pointer"
                 >
                   {user.name}
@@ -333,7 +334,7 @@ export default function StudentsPanel() {
 
         {users.length === 0 && (
           <p className="text-sm text-emerald-600 mt-3">
-            لا يوجد طلاب حتى الآن.
+            لحظات... لو مفيش حاجة ظاهرة ضيف طالب
           </p>
         )}
       </section>
