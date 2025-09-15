@@ -109,7 +109,7 @@ function QuranLessonsHome() {
                 <h3 className="text-2xl font-bold text-emerald-800 mb-2">
                   {group.title}
                 </h3>
-                <p className="text-emerald-700 mb-2">🕓 {console.log(group)}</p>
+                <p className="text-emerald-700 mb-2">🕓 {group.time.split(" ") }</p>
                 <p className="text-emerald-700 mb-4">📅 {group.day}</p>
                 <button
                   onClick={() => handleStartLesson(group)}
