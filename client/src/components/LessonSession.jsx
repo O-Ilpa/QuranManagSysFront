@@ -1,4 +1,3 @@
-// src/components/LessonSession.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -22,11 +21,12 @@ export default function LessonSession() {
 
   const [group, setGroup] = useState(null);
   const [lesson, setLesson] = useState(null);
-  const [studentsList, setStudentsList] = useState([]); // each: { studentId, name, attended, notes, nextRevision:{...}, lastRevision:{...} }
+  const [studentsList, setStudentsList] = useState([]); // each: { studentId, name, attended, notes, nextRevision:[{...}], lastRevision:{...} }
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [suggestedRevisionIndex, setSuggestedRevisionIndex] = useState({});
 
   const [quranList, setQuranList] = useState([]); // array from API: { number, name, englishName, numberOfAyahs, ... }
   const [surahMap, setSurahMap] = useState({}); // map name -> numberOfAyahs
@@ -53,14 +53,30 @@ export default function LessonSession() {
     }
     return null;
   }
-
+  useEffect(() => {
+    if (!token) {
+    navigate("/login")
+  }
+  })
   function formatRevision(rev) {
     if (!rev) return "";
+
+    // Handle string input (parse to object/array)
     if (typeof rev === "string") {
       const parsed = parseRevisionString(rev);
       if (parsed) rev = parsed;
     }
-    if (!rev || !rev.surah) return "";
+
+    // If rev is an array, format each revision and join them
+    if (Array.isArray(rev)) {
+      const formattedRevisions = rev
+        .filter((r) => r && r.surah && r.fromAyah && r.toAyah)
+        .map((r) => `${r.surah} ${r.fromAyah}-${r.toAyah}`);
+      return formattedRevisions.length > 0 ? formattedRevisions.join(", ") : "";
+    }
+
+    // Handle single revision object
+    if (!rev || !rev.surah || !rev.fromAyah || !rev.toAyah) return "";
     return `${rev.surah} ${rev.fromAyah}-${rev.toAyah}`;
   }
 
@@ -98,7 +114,6 @@ export default function LessonSession() {
     if (!surahObj) return null;
     const maxAyah = surahObj.numberOfAyahs;
     const length = currentRev.toAyah - currentRev.fromAyah + 1;
-    // NEW: allow using last.toAyah as new from (not +1)
     let newFrom = useOldToAsFrom ? currentRev.toAyah : currentRev.toAyah + 1;
     let newSurah = surahObj;
 
@@ -131,29 +146,55 @@ export default function LessonSession() {
   }
 
   function normalizeRevisionInput(input) {
-    if (!input) return null;
+    if (!input) return [];
     if (typeof input === "string") {
       const parsed = parseRevisionString(input);
-      if (parsed) return parsed;
-      return null;
+      return parsed ? [parsed] : [];
     }
     if (typeof input === "object") {
-      const surah = input.surah || input.sura || input.name || "";
-      const fromAyah = input.fromAyah ?? input.from ?? input.start ?? null;
-      const toAyah = input.toAyah ?? input.to ?? input.end ?? null;
       if (
-        surah &&
-        Number.isFinite(Number(fromAyah)) &&
-        Number.isFinite(Number(toAyah))
+        Array.isArray(input.surah) &&
+        Array.isArray(input.fromAyah) &&
+        Array.isArray(input.toAyah) &&
+        Array.isArray(input.count)
       ) {
-        return {
-          surah: surah.toString(),
-          fromAyah: Number(fromAyah),
-          toAyah: Number(toAyah),
-        };
+        const len = input.surah.length;
+        if (
+          input.fromAyah.length === len &&
+          input.toAyah.length === len &&
+          input.count.length === len
+        ) {
+          return input.surah.map((surah, i) => ({
+            surah,
+            fromAyah: Number(input.fromAyah[i]),
+            toAyah: Number(input.toAyah[i]),
+            count: Number(input.count[i]),
+          }));
+        }
+        return [];
+      } else {
+        // single
+        const surah = input.surah || input.sura || input.name || "";
+        const fromAyah = input.fromAyah ?? input.from ?? input.start ?? null;
+        const toAyah = input.toAyah ?? input.to ?? input.end ?? null;
+        const count = input.count ?? toAyah - fromAyah + 1 ?? null;
+        if (
+          surah &&
+          Number.isFinite(Number(fromAyah)) &&
+          Number.isFinite(Number(toAyah))
+        ) {
+          return [
+            {
+              surah: surah.toString(),
+              fromAyah: Number(fromAyah),
+              toAyah: Number(toAyah),
+              count: Number(count),
+            },
+          ];
+        }
       }
     }
-    return null;
+    return [];
   }
 
   // ---------- Load data ----------
@@ -224,34 +265,21 @@ export default function LessonSession() {
             const last = studentDoc.history[studentDoc.history.length - 1];
             lastRevisionObj = normalizeRevisionInput(
               last?.nextRevision || last?.notes || last
-            );
+            ) || null;
           }
           if (!lastRevisionObj && (entry.lastRevision || entry.notes)) {
-            lastRevisionObj = normalizeRevisionInput(
-              entry.lastRevision || entry.notes
-            );
+            lastRevisionObj =
+              normalizeRevisionInput(entry.lastRevision || entry.notes) || null;
           }
 
           // prefer stored entry.nextRevision
-          let nextRev = normalizeRevisionInput(entry.nextRevision) || null;
-
-          // NEW: If no explicit nextRev but have lastRevision -> auto-select same surah
-          if (!nextRev && lastRevisionObj) {
-            // compute suggested starting at previous TO (old-to-as-new-from)
-            const suggested = computeNextRevisionChunk(lastRevisionObj, true);
-            nextRev = {
-              surah: lastRevisionObj.surah || "",
-              fromAyah: suggested ? suggested.fromAyah : "",
-              toAyah: suggested ? suggested.toAyah : "",
-              count: suggested ? suggested.toAyah - suggested.fromAyah + 1 : "",
-            };
-          }
+          let nextRev = normalizeRevisionInput(entry.nextRevision);
 
           const notes = entry.notes || "";
           const attended =
             !!entry.attended ||
             (notes && notes.toString().trim() !== "") ||
-            !!nextRev;
+            !!nextRev.length;
 
           return {
             studentId: sid,
@@ -284,13 +312,253 @@ export default function LessonSession() {
       const item = { ...copy[idx], ...patch };
 
       const notesVal = (item.notes ?? "").toString().trim();
-      const hasNextRev =
-        item.nextRevision &&
-        item.nextRevision.surah &&
-        Number.isFinite(Number(item.nextRevision.fromAyah));
+      const hasNextRev = item.nextRevision.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
       item.attended = !!(notesVal || hasNextRev);
 
       copy[idx] = item;
+      return copy;
+    });
+  }
+
+  function addNewRevision(studentIdx) {
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      student.nextRevision = [
+        ...student.nextRevision,
+        { surah: "", fromAyah: "", toAyah: "", count: "" },
+      ];
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = student.nextRevision.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+      return copy;
+    });
+  }
+
+  function removeRevision(studentIdx, revIdx) {
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      const nextRevs = [...student.nextRevision];
+      nextRevs.splice(revIdx, 1);
+      student.nextRevision = nextRevs;
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = student.nextRevision.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+      return copy;
+    });
+  }
+
+  function handleSurahChange(studentIdx, revIdx, e) {
+    const surahName = e.target.value || "";
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      const nextRevs = [...student.nextRevision];
+      const rev = { ...nextRevs[revIdx] };
+      rev.surah = surahName;
+      const sObj = findSurahObjByName(surahName);
+      if (sObj) {
+        const max = sObj.numberOfAyahs;
+        if (rev.toAyah && Number(rev.toAyah) > max) rev.toAyah = max;
+        if (rev.fromAyah && Number(rev.fromAyah) > max) rev.fromAyah = max;
+      }
+      if (
+        Number.isFinite(Number(rev.fromAyah)) &&
+        Number.isFinite(Number(rev.toAyah))
+      ) {
+        rev.count = Number(rev.toAyah) - Number(rev.fromAyah) + 1;
+      } else {
+        rev.count = rev.count ?? "";
+      }
+      if (sObj && Number.isFinite(rev.toAyah)) {
+        rev._exceeds = Number(rev.toAyah) > sObj.numberOfAyahs;
+      } else {
+        delete rev._exceeds;
+      }
+      nextRevs[revIdx] = rev;
+      student.nextRevision = nextRevs;
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = nextRevs.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+      return copy;
+    });
+  }
+
+  function handleFromChange(studentIdx, revIdx, e) {
+    const raw = e.target.value;
+    const fromVal = raw === "" ? "" : Number(raw);
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      const nextRevs = [...student.nextRevision];
+      const rev = { ...nextRevs[revIdx] };
+      rev.fromAyah = fromVal === "" ? "" : Number(fromVal);
+      if (
+        rev.count !== "" &&
+        Number.isFinite(Number(rev.count)) &&
+        rev.fromAyah !== ""
+      ) {
+        rev.toAyah = Number(rev.fromAyah) + Number(rev.count) - 1;
+      } else if (rev.toAyah !== "" && rev.fromAyah !== "") {
+        rev.toAyah = Math.max(Number(rev.toAyah), Number(rev.fromAyah));
+      }
+      if (
+        Number.isFinite(Number(rev.fromAyah)) &&
+        Number.isFinite(Number(rev.toAyah))
+      ) {
+        rev.count = Number(rev.toAyah) - Number(rev.fromAyah) + 1;
+      }
+      const sObj = findSurahObjByName(rev.surah);
+      if (sObj && Number.isFinite(rev.toAyah)) {
+        rev._exceeds = Number(rev.toAyah) > sObj.numberOfAyahs;
+      } else {
+        delete rev._exceeds;
+      }
+      nextRevs[revIdx] = rev;
+      student.nextRevision = nextRevs;
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = nextRevs.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+      return copy;
+    });
+  }
+
+  function handleCountChange(studentIdx, revIdx, e) {
+    const raw = e.target.value;
+    const newCount = raw === "" ? "" : Number(raw);
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      const nextRevs = [...student.nextRevision];
+      const rev = { ...nextRevs[revIdx] };
+      rev.count = newCount === "" ? "" : Number(newCount);
+      const from = Number(rev.fromAyah) || 1;
+      if (rev.count !== "" && Number.isFinite(Number(rev.count))) {
+        rev.toAyah = from + Number(rev.count) - 1;
+      }
+      if (
+        Number.isFinite(Number(rev.fromAyah)) &&
+        Number.isFinite(Number(rev.toAyah))
+      ) {
+        rev.count = Number(rev.toAyah) - Number(rev.fromAyah) + 1;
+      }
+      const sObj = findSurahObjByName(rev.surah);
+      if (sObj && Number.isFinite(rev.toAyah)) {
+        rev._exceeds = Number(rev.toAyah) > sObj.numberOfAyahs;
+      } else {
+        delete rev._exceeds;
+      }
+      nextRevs[revIdx] = rev;
+      student.nextRevision = nextRevs;
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = nextRevs.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+      return copy;
+    });
+  }
+
+  function handleToChange(studentIdx, revIdx, e) {
+    const raw = e.target.value;
+    const newTo = raw === "" ? "" : Number(raw);
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      const nextRevs = [...student.nextRevision];
+      const rev = { ...nextRevs[revIdx] };
+      rev.toAyah = newTo === "" ? "" : Number(newTo);
+      if (
+        Number.isFinite(Number(rev.fromAyah)) &&
+        Number.isFinite(Number(rev.toAyah))
+      ) {
+        rev.count = Number(rev.toAyah) - Number(rev.fromAyah) + 1;
+      }
+      const sObj = findSurahObjByName(rev.surah);
+      if (sObj && Number.isFinite(rev.toAyah)) {
+        rev._exceeds = Number(rev.toAyah) > sObj.numberOfAyahs;
+      } else {
+        delete rev._exceeds;
+      }
+      nextRevs[revIdx] = rev;
+      student.nextRevision = nextRevs;
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = nextRevs.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+      return copy;
+    });
+  }
+
+  function suggestNext(studentIdx) {
+    setStudentsList((prev) => {
+      const copy = [...prev];
+      const student = { ...copy[studentIdx] };
+      const lastRevs = Array.isArray(student.lastRevision)
+        ? student.lastRevision
+        : [];
+      const nextRevs = student.nextRevision;
+
+      // Get the current suggestion index for this student, default to 0
+      const suggestIndex = suggestedRevisionIndex[studentIdx] || 0;
+
+      // If no last revisions exist or all have been suggested, do nothing
+      if (lastRevs.length === 0 || suggestIndex >= lastRevs.length) return prev;
+
+      // Use the suggestIndex to pick the next revision from lastRevision
+      const baseRev = lastRevs[suggestIndex];
+      if (!baseRev) return prev;
+
+      // Compute the suggested revision
+      const suggested = computeNextRevisionChunk(baseRev, true);
+      if (!suggested) return prev;
+
+      const newRev = {
+        surah: suggested.surah,
+        fromAyah: suggested.fromAyah,
+        toAyah: suggested.toAyah,
+        count: suggested.toAyah - suggested.fromAyah + 1,
+      };
+
+      // If no next revisions exist, add to the first form; otherwise, add a new form
+      if (nextRevs.length === 0) {
+        student.nextRevision = [newRev];
+      } else {
+        student.nextRevision = [...nextRevs, newRev];
+      }
+
+      // Update attendance status
+      const notesVal = (student.notes ?? "").toString().trim();
+      const hasNextRev = student.nextRevision.some(
+        (r) => r.surah && Number.isFinite(Number(r.fromAyah))
+      );
+      student.attended = !!(notesVal || hasNextRev);
+      copy[studentIdx] = student;
+
+      // Increment the suggested revision index for this student
+      setSuggestedRevisionIndex((prev) => ({
+        ...prev,
+        [studentIdx]: suggestIndex + 1,
+      }));
+
       return copy;
     });
   }
@@ -302,23 +570,27 @@ export default function LessonSession() {
     setError("");
     try {
       let nextForSave = null;
-      if (
-        cur.nextRevision &&
-        cur.nextRevision.surah &&
-        Number.isFinite(Number(cur.nextRevision.fromAyah)) &&
-        Number.isFinite(Number(cur.nextRevision.toAyah))
-      ) {
+      if (cur.nextRevision.length) {
         nextForSave = {
-          surah: String(cur.nextRevision.surah).trim(),
-          fromAyah: Number(cur.nextRevision.fromAyah),
-          toAyah: Number(cur.nextRevision.toAyah),
-          count:
-            Number(cur.nextRevision.toAyah) -
-            Number(cur.nextRevision.fromAyah) +
-            1,
+          surah: [],
+          fromAyah: [],
+          toAyah: [],
+          count: [],
         };
-      } else {
-        nextForSave = null;
+        cur.nextRevision.forEach((r) => {
+          if (
+            r.surah &&
+            Number.isFinite(Number(r.fromAyah)) &&
+            Number.isFinite(Number(r.toAyah)) &&
+            Number.isFinite(Number(r.count))
+          ) {
+            nextForSave.surah.push(String(r.surah).trim());
+            nextForSave.fromAyah.push(Number(r.fromAyah));
+            nextForSave.toAyah.push(Number(r.toAyah));
+            nextForSave.count.push(Number(r.count));
+          }
+        });
+        if (!nextForSave.surah.length) nextForSave = null;
       }
 
       const payload = {
@@ -338,8 +610,7 @@ export default function LessonSession() {
         const normalized = {
           attended: !!serverEntry.attended,
           notes: serverEntry.notes || "",
-          nextRevision:
-            normalizeRevisionInput(serverEntry.nextRevision) || null,
+          nextRevision: normalizeRevisionInput(serverEntry.nextRevision),
         };
         updateStudentLocal(index, normalized);
       }
@@ -361,23 +632,27 @@ export default function LessonSession() {
     try {
       const attendance = studentsList.map((s) => {
         let nextForSave = null;
-        if (
-          s.nextRevision &&
-          s.nextRevision.surah &&
-          Number.isFinite(Number(s.nextRevision.fromAyah)) &&
-          Number.isFinite(Number(s.nextRevision.toAyah))
-        ) {
+        if (s.nextRevision.length) {
           nextForSave = {
-            surah: String(s.nextRevision.surah).trim(),
-            fromAyah: Number(s.nextRevision.fromAyah),
-            toAyah: Number(s.nextRevision.toAyah),
-            count:
-              Number(s.nextRevision.toAyah) -
-              Number(s.nextRevision.fromAyah) +
-              1,
+            surah: [],
+            fromAyah: [],
+            toAyah: [],
+            count: [],
           };
-        } else {
-          nextForSave = null;
+          s.nextRevision.forEach((r) => {
+            if (
+              r.surah &&
+              Number.isFinite(Number(r.fromAyah)) &&
+              Number.isFinite(Number(r.toAyah)) &&
+              Number.isFinite(Number(r.count))
+            ) {
+              nextForSave.surah.push(String(r.surah).trim());
+              nextForSave.fromAyah.push(Number(r.fromAyah));
+              nextForSave.toAyah.push(Number(r.toAyah));
+              nextForSave.count.push(Number(r.count));
+            }
+          });
+          if (!nextForSave.surah.length) nextForSave = null;
         }
 
         return {
@@ -516,241 +791,108 @@ export default function LessonSession() {
                 <div>
                   <label className="block text-sm mb-1">المراجعة القادمة</label>
 
-                  <div className="grid grid-cols-1 gap-2">
-                    <select
-                      value={student?.nextRevision?.surah || ""}
-                      onChange={(e) => {
-                        const surahName = e.target.value || "";
-                        const next = student?.nextRevision
-                          ? { ...student.nextRevision }
-                          : { surah: "", fromAyah: "", toAyah: "", count: "" };
-                        next.surah = surahName;
-
-                        const sObj = findSurahObjByName(surahName);
-                        if (sObj) {
-                          const max = sObj.numberOfAyahs;
-                          if (next.toAyah && Number(next.toAyah) > max)
-                            next.toAyah = max;
-                          if (next.fromAyah && Number(next.fromAyah) > max)
-                            next.fromAyah = max;
-                        }
-
-                        // recompute count if both from/to present
-                        if (
-                          Number.isFinite(Number(next.fromAyah)) &&
-                          Number.isFinite(Number(next.toAyah))
-                        ) {
-                          next.count =
-                            Number(next.toAyah) - Number(next.fromAyah) + 1;
-                        } else {
-                          next.count = next.count ?? "";
-                        }
-
-                        // validate
-                        const sObj2 = findSurahObjByName(next.surah);
-                        if (sObj2 && Number.isFinite(next.toAyah)) {
-                          next._exceeds = next.toAyah > sObj2.numberOfAyahs;
-                        } else {
-                          delete next._exceeds;
-                        }
-
-                        updateStudentLocal(idx, { nextRevision: next });
-                      }}
-                      className="w-full border px-3 py-2 rounded"
-                    >
-                      <option value="">اختر السورة...</option>
-                      {quranList.map((s) => (
-                        <option key={s.number} value={s.name}>
-                          {surahLabel(s)}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="block text-xs mb-2 font-medium">
-                          من آية
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={student?.nextRevision?.fromAyah ?? ""}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const fromVal = raw === "" ? "" : Number(raw);
-                            const next = student?.nextRevision
-                              ? { ...student.nextRevision }
-                              : {
-                                  surah: "",
-                                  fromAyah: "",
-                                  toAyah: "",
-                                  count: "",
-                                };
-                            next.fromAyah =
-                              fromVal === "" ? "" : Number(fromVal);
-
-                            // if count exists, recompute toAyah
-                            if (
-                              next.count !== "" &&
-                              Number.isFinite(Number(next.count)) &&
-                              next.fromAyah !== ""
-                            ) {
-                              next.toAyah =
-                                Number(next.fromAyah) + Number(next.count) - 1;
-                            } else if (
-                              next.toAyah !== "" &&
-                              next.fromAyah !== ""
-                            ) {
-                              // ensure toAyah >= fromAyah
-                              next.toAyah = Math.max(
-                                Number(next.toAyah),
-                                Number(next.fromAyah)
-                              );
-                            }
-
-                            if (
-                              Number.isFinite(Number(next.fromAyah)) &&
-                              Number.isFinite(Number(next.toAyah))
-                            ) {
-                              next.count =
-                                Number(next.toAyah) - Number(next.fromAyah) + 1;
-                            }
-
-                            const sObj = findSurahObjByName(next.surah);
-                            if (sObj && Number.isFinite(next.toAyah))
-                              next._exceeds = next.toAyah > sObj.numberOfAyahs;
-                            else delete next._exceeds;
-
-                            updateStudentLocal(idx, { nextRevision: next });
-                          }}
+                  {student.nextRevision.map((rev, revIdx) => (
+                    <div key={revIdx} className="border p-2 rounded mb-2">
+                      <div className="grid grid-cols-1 gap-2">
+                        <select
+                          value={rev.surah || ""}
+                          onChange={(e) => handleSurahChange(idx, revIdx, e)}
                           className="w-full border px-3 py-2 rounded"
-                          placeholder="مثال: 1"
-                        />
+                        >
+                          <option value="">اختر السورة...</option>
+                          {quranList.map((s) => (
+                            <option key={s.number} value={s.name}>
+                              {surahLabel(s)}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="block text-xs mb-2 font-medium">
+                              من آية
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={rev.fromAyah ?? ""}
+                              onChange={(e) => handleFromChange(idx, revIdx, e)}
+                              className="w-full border px-3 py-2 rounded"
+                              placeholder="مثال: 1"
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">
+                              عدد الآيات
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={rev.count ?? ""}
+                              onChange={(e) =>
+                                handleCountChange(idx, revIdx, e)
+                              }
+                              className="w-full border px-3 py-2 rounded"
+                            />
+                          </div>
+
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">
+                              إلى الآية
+                            </label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={rev.toAyah ?? ""}
+                              onChange={(e) => handleToChange(idx, revIdx, e)}
+                              className="w-full border px-3 py-2 rounded"
+                            />
+                          </div>
+                        </div>
                       </div>
-
-                      {/* Count Input (updates student's nextRevision) */}
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">
-                          عدد الآيات
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={student?.nextRevision?.count ?? ""}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const newCount = raw === "" ? "" : Number(raw);
-                            const next = student?.nextRevision
-                              ? { ...student.nextRevision }
-                              : {
-                                  surah: "",
-                                  fromAyah: "",
-                                  toAyah: "",
-                                  count: "",
-                                };
-                            next.count =
-                              newCount === "" ? "" : Number(newCount);
-
-                            // ensure fromAyah exists (default to 1)
-                            const from = Number(next.fromAyah) || 1;
-                            if (
-                              next.count !== "" &&
-                              Number.isFinite(Number(next.count))
-                            ) {
-                              next.toAyah =
-                                Number(from) + Number(next.count) - 1;
-                            }
-
-                            if (
-                              Number.isFinite(Number(next.fromAyah)) &&
-                              Number.isFinite(Number(next.toAyah))
-                            ) {
-                              next.count =
-                                Number(next.toAyah) - Number(next.fromAyah) + 1;
-                            }
-
-                            const sObj = findSurahObjByName(next.surah);
-                            if (sObj && Number.isFinite(next.toAyah))
-                              next._exceeds = next.toAyah > sObj.numberOfAyahs;
-                            else delete next._exceeds;
-
-                            updateStudentLocal(idx, { nextRevision: next });
-                          }}
-                          className="w-full border px-3 py-2 rounded"
-                        />
-                      </div>
-
-                      {/* To Ayah Input */}
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">
-                          إلى الآية
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={student?.nextRevision?.toAyah ?? ""}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            const newTo = raw === "" ? "" : Number(raw);
-                            const next = student?.nextRevision
-                              ? { ...student.nextRevision }
-                              : {
-                                  surah: "",
-                                  fromAyah: "",
-                                  toAyah: "",
-                                  count: "",
-                                };
-                            next.toAyah = newTo === "" ? "" : Number(newTo);
-
-                            if (
-                              Number.isFinite(Number(next.fromAyah)) &&
-                              Number.isFinite(Number(next.toAyah))
-                            ) {
-                              next.count =
-                                Number(next.toAyah) - Number(next.fromAyah) + 1;
-                            }
-
-                            const sObj = findSurahObjByName(next.surah);
-                            if (sObj && Number.isFinite(next.toAyah))
-                              next._exceeds = next.toAyah > sObj.numberOfAyahs;
-                            else delete next._exceeds;
-
-                            updateStudentLocal(idx, { nextRevision: next });
-                          }}
-                          className="w-full border px-3 py-2 rounded"
-                        />
-                      </div>
+                      {rev._exceeds && (
+                        <p className="text-red-500 text-sm mt-1">
+                          تجاوز عدد الآيات في السورة
+                        </p>
+                      )}
+                      {student.nextRevision.length > 1 && (
+                        <button
+                          onClick={() => removeRevision(idx, revIdx)}
+                          className="mt-2 px-3 py-1 rounded border bg-red-100 text-red-600 text-sm"
+                        >
+                          إزالة هذه المراجعة
+                        </button>
+                      )}
                     </div>
+                  ))}
 
-                    <div className="flex gap-2 items-center">
-                      <button
-                        onClick={() => {
-                          if (student.lastRevision) {
-                            const suggested = computeNextRevisionChunk(
-                              student.lastRevision,
-                              true
-                            );
-                            if (suggested) {
-                              updateStudentLocal(idx, {
-                                nextRevision: {
-                                  ...suggested,
-                                  count:
-                                    suggested.toAyah - suggested.fromAyah + 1,
-                                },
-                              });
-                            }
-                          }
-                        }}
-                        type="button"
-                        className="px-3 py-1 rounded border bg-white text-sm"
-                      >
-                        اقترح التالي تلقائياً
-                      </button>
-                      <div className="text-sm text-gray-500">
-                        {student?.nextRevision
-                          ? formatRevision(student.nextRevision)
-                          : "لم يتم اختيار مراجعة"}
-                      </div>
+                  <div className="flex gap-2 items-center mt-2">
+                    {Array.isArray(studentsList[index]?.lastRevision) &&
+                      studentsList[index].lastRevision.length > 0 &&
+                      (suggestedRevisionIndex[index] || 0) <
+                        studentsList[index].lastRevision.length && (
+                        <button
+                          onClick={() => suggestNext(index)}
+                          type="button"
+                          className="px-3 py-1 rounded border bg-white text-sm"
+                        >
+                          اقترح 
+                        </button>
+                      )}
+                    <button
+                      onClick={() => addNewRevision(index)}
+                      type="button"
+                      className="px-3 py-1 rounded border bg-white text-sm"
+                    >
+                      إضافة 
+                    </button>
+                    <div className="text-sm text-gray-500">
+                      {studentsList[index].nextRevision.length
+                        ? studentsList[index].nextRevision
+                            .map(formatRevision)
+                            .join("، ")
+                        : "لم يتم اختيار مراجعة"}
                     </div>
                   </div>
                 </div>

@@ -10,15 +10,18 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("users");
   const navigate = useNavigate()
   const token = localStorage.getItem("token")
-  if (!token) {
-    navigate("/")
-  }
+  
   let API;
   if (import.meta.env.MODE === "Production") {
     API = import.meta.env.VITE_PRODUCTION_API;
   } else {
     API = import.meta.env.VITE_LOCAL_API;
   }
+  useEffect(() => {
+    if (!token) {
+    navigate("/login")
+  }
+  })
 
   return (
     <div

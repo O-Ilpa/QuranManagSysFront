@@ -37,6 +37,9 @@ export default function GroupsPanel() {
   useEffect(() => {
     fetchStudents();
     fetchGroups();
+    if (!token) {
+      navigate("/login")
+    }
   }, []);
 
   async function fetchStudents() {
@@ -76,7 +79,13 @@ export default function GroupsPanel() {
       setSelected(new Set(students.map((s) => s._id ?? s.id)));
     }
   }
-
+const to12HourFormat = (time24) => {
+  if (!time24) return "";
+  const [hours, minutes] = time24.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 || 12; // 0 becomes 12 for midnight
+  return `${hours12}:${minutes.toString().padStart(2, "0")} ${period}`;
+};
   async function handleCreateGroup(e) {
     e.preventDefault();
     setError("");
@@ -93,7 +102,7 @@ export default function GroupsPanel() {
         studentIds,
         notes: notes.trim(),
         day,
-        time,
+        time: to12HourFormat(time),
       };
 
       const res = await axios.post(`${BACKAPI}/api/groups`, payload, {
@@ -120,7 +129,6 @@ export default function GroupsPanel() {
     }
   }
   async function handleDeleteGroup(group) {
-    if (!confirm(`هل أنت متأكد أنك تريد حذف الحلقة "${group.title}"؟`)) return;
 
     try {
       await axios.delete(`${BACKAPI}/api/groups/${group._id ?? group.id}`, {
@@ -335,7 +343,6 @@ export default function GroupsPanel() {
             <tr className="bg-emerald-100 text-emerald-800">
               <th className="p-2">الاسم </th>
               <th className="p-2">الوقت</th>
-              <th className="p-2">العدد</th>
               <th className="p-2">الإجراء</th>
             </tr>
           </thead>
@@ -352,17 +359,15 @@ export default function GroupsPanel() {
 
                 {/* Day & Time */}
                 <td className="text-emerald-700">
-                  {g.day && g.time ? `${g.day} - ${g.time}` : "-"}
+                  {g.day && g.time ? `${g.day} - ${g.time.split(" ")[0]}` : "-"}
                 </td>
 
                 {/* Number of students */}
-                <td className="p-2 text-emerald-700">
-                  {(g.students || []).length}
-                </td>
+                
 
                 {/* Actions: Start & Delete */}
                 <td className="p-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => handleStartLesson(g)}
                       className="bg-emerald-600 text-white px-3 py-1 rounded"
@@ -374,7 +379,7 @@ export default function GroupsPanel() {
                     {/* Delete button */}
                     <button
                       onClick={() => setConfirmDelete(g._id ?? g.id)}
-                      className="bg-red-600 text-white px-3 py-1 rounded"
+                      className="bg-red-600 text-white px-3 py-2 rounded"
                       title="حذف"
                     >
                       <FaTrash/>

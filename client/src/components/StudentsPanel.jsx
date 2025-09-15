@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function StudentsPanel() {
   const [expanded, setExpanded] = useState(false);
@@ -12,7 +13,7 @@ export default function StudentsPanel() {
   const containerRef = useRef(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [error, setError] = useState("");
-
+  const navigate = useNavigate();
   let BACKAPI;
   if (import.meta.env.MODE === "development") {
     BACKAPI = import.meta.env.VITE_DEVELOPMENT_API;
@@ -22,6 +23,9 @@ export default function StudentsPanel() {
   const token = localStorage.getItem("token");
   useEffect(() => {
     fetchUsers();
+    if (!token) {
+      navigate("/login")
+    }
   }, []);
 
   async function fetchUsers() {
@@ -259,7 +263,9 @@ export default function StudentsPanel() {
                     className="w-8 h-8 rounded-full mx-auto"
                   />
                 </td>
-                <td className="p-1 font-medium text-emerald-900">
+                <td onClick={() => navigate(`/students/${user._id}`)}
+                  className="p-1 font-medium text-emerald-900 underline cursor-pointer"
+                >
                   {user.name}
                 </td>
                 <td className="p-2 text-center">

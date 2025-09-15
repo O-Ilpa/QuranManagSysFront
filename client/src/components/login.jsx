@@ -20,12 +20,7 @@ const LogIn = () => {
   const token = localStorage.getItem("token")
   useEffect(() => {
     if (token) {
-      const decoded = jwtDecode(token);
-      if (decoded?.role === "admin") {
-        navigator("/admin/");
-      } else {
-        navigate("/");
-      }
+      navigate("/admin")
     }
   }, []);
   const handleSubmit = async (e) => {

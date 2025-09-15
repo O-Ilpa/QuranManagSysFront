@@ -11,10 +11,39 @@ export default function StudentDetail() {
   const [student, setStudent] = useState(null);
   const [lessons, setLessons] = useState([]);
 
+  const token = localStorage.getItem("token")
+
+  useEffect(() => {
+    if (!token) {
+    navigate("/login")
+  }
+  })
   const BACKAPI =
     import.meta.env.MODE === "production"
       ? import.meta.env.VITE_PRODUCTION_API
       : import.meta.env.VITE_DEVELOPMENT_API;
+const formatNextRevision = (rev) => {
+  if (!rev) return "—";
+
+  // Single revision (string surah)
+  if (typeof rev.surah === "string") {
+    return `${rev.surah}: ${rev.fromAyah} → ${rev.toAyah} (${rev.count} آيات)`;
+  }
+
+  // Arrays case, but check they exist and have values
+  if (Array.isArray(rev.surah)) {
+    return rev.surah
+      .map((s, idx) => {
+        const from = rev.fromAyah?.[idx] ?? "؟";
+        const to = rev.toAyah?.[idx] ?? "؟";
+        return `${s}: ${from} ← ${to} `;
+      })
+      .join("، ");
+  }
+
+  // Fallback: stringify object
+  return JSON.stringify(rev);
+};
 
   useEffect(() => {
     async function load() {
@@ -43,33 +72,40 @@ export default function StudentDetail() {
   if (!student) return <div className="p-4">لم يتم العثور على الطالب.</div>;
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 p-6">
+    <div
+      dir="rtl"
+      className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 p-6"
+    >
       {/* Header */}
       <header className="bg-emerald-700 text-white p-4 rounded shadow mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">{student.name}</h1>
-          <p className="text-sm text-emerald-100 mt-1">{student.notes || "لا توجد ملاحظات"}</p>
+          <p className="text-sm text-emerald-100 mt-1">
+            {student.notes || "لا توجد ملاحظات"}
+          </p>
         </div>
 
         <div className="text-right">
-          <button onClick={() => navigate(-1)} className="bg-white text-emerald-700 rounded px-3 py-1">
+          <button
+            onClick={() => navigate(-1)}
+            className="bg-white text-emerald-700 rounded px-3 py-1"
+          >
             رجوع
           </button>
-          <button
-            onClick={() => navigate(`/groups/${id}`)} // optional: adjust nav to open group or student editing
-            className="ml-2 bg-emerald-600 text-white rounded px-3 py-1"
-          >
-            فتح الملف
-          </button>
+          
         </div>
       </header>
 
       {/* Lessons timeline (group-centric) */}
       <section className="bg-white p-4 rounded shadow mb-6 border border-emerald-200">
-        <h2 className="text-lg font-semibold text-emerald-800 mb-3">سجل الحضور (الدروس)</h2>
+        <h2 className="text-lg font-semibold text-emerald-800 mb-3">
+          سجل الحضور (الدروس)
+        </h2>
 
         {lessons.length === 0 ? (
-          <p className="text-sm text-emerald-500">لم يحضر هذا الطالب أي دروس حتى الآن.</p>
+          <p className="text-sm text-emerald-500">
+            لم يحضر هذا الطالب أي دروس حتى الآن.
+          </p>
         ) : (
           <ul className="space-y-3">
             {lessons.map((l) => (
@@ -78,13 +114,26 @@ export default function StudentDetail() {
                   <div>
                     <div className="text-sm text-emerald-600">
                       {new Date(l.lessonDate).toLocaleDateString()}{" "}
-                      <span className="mx-2">•</span> {new Date(l.lessonDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <span className="mx-2">•</span>{" "}
+                      {new Date(l.lessonDate).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
-                    <div className="font-medium text-emerald-900">{l.groupTitle}</div>
+                    <div className="font-medium text-emerald-900">
+                      {l.groupTitle}
+                    </div>
+                    <div className="font-medium text-emerald-900">
+                      {l.note}
+                    </div>
                   </div>
 
                   <div className="text-right">
-                    <div className={`text-sm ${l.attended ? "text-emerald-700" : "text-red-600"}`}>
+                    <div
+                      className={`text-sm ${
+                        l.attended ? "text-emerald-700" : "text-red-600"
+                      }`}
+                    >
                       {l.attended ? "حضر" : "غائب"}
                     </div>
                     <button
@@ -96,36 +145,23 @@ export default function StudentDetail() {
                   </div>
                 </div>
 
-                {l.notes && <p className="mt-2 text-sm text-emerald-700">ملاحظات: {l.notes}</p>}
-                {l.nextRevision && <p className="mt-1 text-sm text-emerald-600">المراجعة القادمة: {l.nextRevision}</p>}
+                {l.notes && (
+                  <p className="mt-2 text-sm text-emerald-700">
+                    ملاحظات: {l.notes}
+                  </p>
+                )}
+                {l.nextRevision && (
+                  <p className="mt-1 text-sm text-emerald-600">
+                    المراجعة القادمة: {formatNextRevision(l.nextRevision) + "\n"}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {/* Student personal history (mirrors what we also push into Student.history) */}
-      <section className="bg-white p-4 rounded shadow border border-emerald-200">
-        <h2 className="text-lg font-semibold text-emerald-800 mb-3">سجل الطالب التفصيلي</h2>
-
-        {(!student.history || student.history.length === 0) ? (
-          <p className="text-sm text-emerald-500">لم تسجل أي ملاحظات تاريخية لهذا الطالب.</p>
-        ) : (
-          <ul className="space-y-3">
-            {student.history.map((h, i) => (
-              <li key={i} className="bg-emerald-50 p-3 rounded-md border">
-                <div className="text-sm text-emerald-700 mb-1">
-                  <strong>التاريخ:</strong> {new Date(h.date).toLocaleDateString()}
-                </div>
-                <div className="text-sm mb-1"><strong>المجموعة:</strong> {h.group?.title ?? "—"}</div>
-                <div className="text-sm mb-1"><strong>راجع:</strong> {h.revised ? "✔️" : "❌"}</div>
-                {h.notes && <div className="text-sm mb-1">ملاحظات: {h.notes}</div>}
-                {h.nextRevision && <div className="text-sm">المراجعة القادمة: {h.nextRevision}</div>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      
     </div>
   );
 }
