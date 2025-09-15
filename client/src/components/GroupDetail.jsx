@@ -110,7 +110,7 @@ export default function GroupDetail() {
             {group.title}
           </h2>
           <p className="text-sm text-emerald-600">
-            {group.day} - {console.log(group)}
+            {group.day} - {group.time}
           </p>
           <button
                   onClick={() => handleStartLesson(group)}
