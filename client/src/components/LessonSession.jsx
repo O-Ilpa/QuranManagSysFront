@@ -37,7 +37,6 @@ export default function LessonSession() {
       ? import.meta.env.VITE_PRODUCTION_API
       : import.meta.env.VITE_DEVELOPMENT_API;
 
-  // ---------- Helpers ----------
 
   function parseRevisionString(str) {
     if (!str || typeof str !== "string") return null;
@@ -61,13 +60,11 @@ export default function LessonSession() {
   function formatRevision(rev) {
     if (!rev) return "";
 
-    // Handle string input (parse to object/array)
     if (typeof rev === "string") {
       const parsed = parseRevisionString(rev);
       if (parsed) rev = parsed;
     }
 
-    // If rev is an array, format each revision and join them
     if (Array.isArray(rev)) {
       const formattedRevisions = rev
         .filter((r) => r && r.surah && r.fromAyah && r.toAyah)

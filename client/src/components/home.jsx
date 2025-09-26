@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 const BACKAPI =
   import.meta.env.MODE === "production"
@@ -75,7 +76,7 @@ function QuranLessonsHome() {
       setLoading(false);
     }
   }
-
+const decoded = jwtDecode(token)
   return (
     <>
       <header className="bg-white border-b border-emerald-300 py-4 px-6 shadow-sm flex justify-between items-center">
@@ -107,6 +108,7 @@ function QuranLessonsHome() {
           <h2 className="text-4xl text-center font-extrabold text-emerald-800 mb-10 border-b border-emerald-400 inline-block pb-3">
             الحلقات القرآنية المباركة
           </h2>
+          <div className="text-center text-red-600 mb-3">{decoded.name == "Visitor" ? "Unauthorized" : ""}</div>
 
           {/* LOADER */}
           {loadingGroups ? (

@@ -23,7 +23,7 @@ export default function AdminDashboard() {
       navigate("/login");
     }
   });
-
+  const decoded = jwtDecode(token);
   return (
     <>
       <header className="bg-white border-b border-emerald-300 py-4 px-6 shadow-sm flex justify-between items-center">
@@ -57,6 +57,7 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-bold mb-2 md:mb-6 hidden md:block">
             منصة الحلقات
           </h2>
+
           <button
             className={`w-full py-2 px-4 rounded-full text-sm font-medium transition-colors text-center ${
               activeTab === "users"
@@ -81,6 +82,7 @@ export default function AdminDashboard() {
 
         <div className="flex-1 flex flex-col min-h-screen">
           <main className="flex-1 p-4 md:p-6 space-y-6">
+            <div className="text-center text-red-600">{decoded.name == "Visitor" ? "Unauthorized" : ""}</div>
             {activeTab === "users" && <StudentsPanel />}
 
             {activeTab === "groups" && <GroupsPanel />}

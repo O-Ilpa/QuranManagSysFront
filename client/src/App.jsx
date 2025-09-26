@@ -1,9 +1,8 @@
-// App.jsx
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Link,   // 👈 import Link
+  Link,  
 } from "react-router-dom";
 import QuranLessonsHome from "./components/home";
 import LogIn from "./components/login";
@@ -15,10 +14,6 @@ import StudentDetail from "./components/StudentDetail";
 function App() {
   return (
     <Router>
-      {/* HEADER */}
-      
-
-      {/* ROUTES */}
       <Routes>
         <Route path="/" element={<QuranLessonsHome />} />
         <Route path="/login" element={<LogIn />} />
@@ -31,7 +26,6 @@ function App() {
         <Route path="/students/:id" element={<StudentDetail />} />
       </Routes>
 
-      {/* FOOTER */}
       <footer className="bg-white border-t border-emerald-300 text-emerald-700 py-4 text-center text-sm mt-auto">
         بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ &copy; {new Date().getFullYear()}{" "}
         منصة الحلقات القرآنية

@@ -38,12 +38,8 @@ export default function GroupDetail() {
       );
 
       const lesson = res.data?.lesson ?? res.data?.createdLesson ?? null;
-      if (!lesson) {
-        setError("لم يتم إنشاء الدرس — استجابة غير متوقعة");
-        return;
-      }
 
-      // If you have a route for lesson flow, navigate there:
+
       navigate(`/groups/${group._id}/lessons/${lesson._id}`);
 
       // Otherwise just open console and show a quick success:

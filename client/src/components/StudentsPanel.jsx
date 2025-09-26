@@ -98,6 +98,7 @@ export default function StudentsPanel() {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log(res);
+        if (res.data.message == "Unauthorized") return null
         saved = res.data.student;
         setUsers((u) => [saved, ...u]);
       }
