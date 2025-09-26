@@ -714,6 +714,7 @@ export default function LessonSession() {
   if (!lesson) return <div className="p-4">درس غير موجود</div>;
 
   return (
+    <>
     <div
       dir="rtl"
       className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 p-6"
@@ -914,5 +915,9 @@ export default function LessonSession() {
         طالب {index + 1} من {studentsList.length}
       </div>
     </div>
+          <footer className="bg-white border-t border-emerald-300 text-emerald-700 py-4 text-center text-sm mt-auto">
+        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ &copy; {new Date().getFullYear()}{" "}
+        منصة الحلقات القرآنية
+      </footer></>
   );
 }

@@ -76,7 +76,7 @@ function QuranLessonsHome() {
       setLoading(false);
     }
   }
-const decoded = jwtDecode(token)
+  const decoded = jwtDecode(token);
   return (
     <>
       <header className="bg-white border-b border-emerald-300 py-4 px-6 shadow-sm flex justify-between items-center">
@@ -108,7 +108,9 @@ const decoded = jwtDecode(token)
           <h2 className="text-4xl text-center font-extrabold text-emerald-800 mb-10 border-b border-emerald-400 inline-block pb-3">
             الحلقات القرآنية المباركة
           </h2>
-          <div className="text-center text-red-600 mb-3">{decoded.name == "Visitor" ? "Unauthorized" : ""}</div>
+          <div className="text-center text-red-600 mb-3">
+            {decoded.name == "Visitor" ? "Unauthorized" : ""}
+          </div>
 
           {/* LOADER */}
           {loadingGroups ? (
@@ -146,6 +148,10 @@ const decoded = jwtDecode(token)
           )}
         </main>
       </div>
+      <footer className="bg-white border-t border-emerald-300 text-emerald-700 py-4 text-center text-sm mt-auto">
+        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ &copy; {new Date().getFullYear()}{" "}
+        منصة الحلقات القرآنية
+      </footer>
     </>
   );
 }

@@ -39,7 +39,6 @@ export default function GroupDetail() {
 
       const lesson = res.data?.lesson ?? res.data?.createdLesson ?? null;
 
-
       navigate(`/groups/${group._id}/lessons/${lesson._id}`);
 
       // Otherwise just open console and show a quick success:
@@ -181,56 +180,62 @@ function StudentAccordion({ student }) {
   }
 
   return (
-    <li className="border rounded-lg overflow-hidden shadow-sm">
-      {/* Accordion Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex justify-between items-center p-3 shadow-2xl hover:bg-emerald-200 transition text-emerald-900 font-medium"
-      >
-        <div
-          onClick={() => {
-            navigate(`/students/${student._id}`);
-          }}
+    <>
+      <li className="border rounded-lg overflow-hidden shadow-sm">
+        {/* Accordion Button */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="w-full flex justify-between items-center p-3 shadow-2xl hover:bg-emerald-200 transition text-emerald-900 font-medium"
         >
-          <span className="underline cursor-pointer p-1">{student.name}</span>
-        </div>
-        {open ? (
-          <ChevronUpIcon className="w-5 h-5 text-emerald-700" />
-        ) : (
-          <ChevronDownIcon className="w-5 h-5 text-emerald-700" />
-        )}
-      </button>
-
-      {/* Accordion Content */}
-      {open && (
-        <div className="p-3 bg-emerald-50 border-t space-y-3 text-sm">
-          {student.history.length === 0 ? (
-            <p className="text-emerald-500">لا يوجد سجل لهذا الطالب.</p>
+          <div
+            onClick={() => {
+              navigate(`/students/${student._id}`);
+            }}
+          >
+            <span className="underline cursor-pointer p-1">{student.name}</span>
+          </div>
+          {open ? (
+            <ChevronUpIcon className="w-5 h-5 text-emerald-700" />
           ) : (
-            student.history.map((h) => (
-              <div
-                key={h._id}
-                className="bg-white p-3 rounded-lg shadow border border-emerald-100"
-              >
-                <p>
-                  <span className="font-semibold">📅 التاريخ: </span>
-                  {new Date(h.date).toLocaleDateString()}
-                </p>
-                <p>
-                  <span className="font-semibold">📖 راجع: </span>
-                  {h.revised ? "✔️" : "❌"}
-                </p>
-                {h.notes && <p>📝 ملاحظات: {h.notes}</p>}
-                {h.nextRevision && (
-                  <p>
-                    ➡️ المراجعة القادمة: {formatNextRevision(h.nextRevision)}
-                  </p>
-                )}
-              </div>
-            ))
+            <ChevronDownIcon className="w-5 h-5 text-emerald-700" />
           )}
-        </div>
-      )}
-    </li>
+        </button>
+
+        {/* Accordion Content */}
+        {open && (
+          <div className="p-3 bg-emerald-50 border-t space-y-3 text-sm">
+            {student.history.length === 0 ? (
+              <p className="text-emerald-500">لا يوجد سجل لهذا الطالب.</p>
+            ) : (
+              student.history.map((h) => (
+                <div
+                  key={h._id}
+                  className="bg-white p-3 rounded-lg shadow border border-emerald-100"
+                >
+                  <p>
+                    <span className="font-semibold">📅 التاريخ: </span>
+                    {new Date(h.date).toLocaleDateString()}
+                  </p>
+                  <p>
+                    <span className="font-semibold">📖 راجع: </span>
+                    {h.revised ? "✔️" : "❌"}
+                  </p>
+                  {h.notes && <p>📝 ملاحظات: {h.notes}</p>}
+                  {h.nextRevision && (
+                    <p>
+                      ➡️ المراجعة القادمة: {formatNextRevision(h.nextRevision)}
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </li>
+      <footer className="bg-white border-t border-emerald-300 text-emerald-700 py-4 text-center text-sm mt-auto">
+        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ &copy; {new Date().getFullYear()}{" "}
+        منصة الحلقات القرآنية
+      </footer>{" "}
+    </>
   );
 }

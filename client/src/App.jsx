@@ -26,10 +26,7 @@ function App() {
         <Route path="/students/:id" element={<StudentDetail />} />
       </Routes>
 
-      <footer className="bg-white border-t border-emerald-300 text-emerald-700 py-4 text-center text-sm mt-auto">
-        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ &copy; {new Date().getFullYear()}{" "}
-        منصة الحلقات القرآنية
-      </footer>
+
     </Router>
   );
 }

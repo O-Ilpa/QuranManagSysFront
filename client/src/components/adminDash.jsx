@@ -23,7 +23,10 @@ export default function AdminDashboard() {
       navigate("/login");
     }
   });
-  const decoded = jwtDecode(token);
+  let decoded = {}
+  if (token) {
+    decoded = jwtDecode(token);
+  }
   return (
     <>
       <header className="bg-white border-b border-emerald-300 py-4 px-6 shadow-sm flex justify-between items-center">
@@ -82,13 +85,19 @@ export default function AdminDashboard() {
 
         <div className="flex-1 flex flex-col min-h-screen">
           <main className="flex-1 p-4 md:p-6 space-y-6">
-            <div className="text-center text-red-600">{decoded.name == "Visitor" ? "Unauthorized" : ""}</div>
+            <div className="text-center text-red-600">
+              {decoded.name == "Visitor" ? "Unauthorized" : ""}
+            </div>
             {activeTab === "users" && <StudentsPanel />}
 
             {activeTab === "groups" && <GroupsPanel />}
           </main>
         </div>
       </div>
+      <footer className="bg-white border-t border-emerald-300 text-emerald-700 py-4 text-center text-sm mt-auto">
+        بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ &copy; {new Date().getFullYear()}{" "}
+        منصة الحلقات القرآنية
+      </footer>
     </>
   );
 }
