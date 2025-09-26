@@ -17,10 +17,10 @@ const LogIn = () => {
   } else {
     BACKAPI = import.meta.env.VITE_PRODUCTION_API;
   }
-  const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token");
   useEffect(() => {
     if (token) {
-      navigate("/admin")
+      navigate("/admin");
     }
   }, []);
   const handleSubmit = async (e) => {
@@ -30,12 +30,12 @@ const LogIn = () => {
         email: email,
         password: password,
       });
-      console.log(email)
+      console.log(email);
       if (res.data.success) {
         localStorage.setItem("token", res.data.token);
         const decoded = jwtDecode(res.data.token);
-        navigate("/admin/")
-        console.log(decoded.name)
+        navigate("/admin/");
+        console.log(decoded.name);
       } else {
         setMessage(res.data.message);
       }
@@ -48,9 +48,8 @@ const LogIn = () => {
     <>
       <div className=" flex flex-col justify-center items-center min-h-screen bg-gray-100">
         <p className="p-5 absolute  text-center bg-teal-600 text-white rounded-2xl top-24">
-          if you're a visitor, login using <br />
-          email: visitor@mail.com <br />
-          pass: visitor@123
+          visitor@mail.com
+          visitor@123
         </p>
         <div className="rounded-2xl shadow p-6 w-80 bg-white">
           <h2 className="text-2xl font-bold mb-4">تسجيل الدخول</h2>
@@ -67,11 +66,14 @@ const LogIn = () => {
                 placeholder="حساب"
                 name="email"
                 required
-                value="visitor@mail.com"
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700" htmlFor="password" value="visitor@123">
+              <label
+                className="block text-gray-700"
+                htmlFor="password"
+                value="visitor@123"
+              >
                 كلمه السر
               </label>
               <input

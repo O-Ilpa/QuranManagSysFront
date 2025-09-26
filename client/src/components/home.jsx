@@ -76,8 +76,10 @@ function QuranLessonsHome() {
       setLoading(false);
     }
   }
-  const decoded = jwtDecode(token);
-  return (
+  let decoded = {}
+  if (token) {
+    decoded = jwtDecode(token);
+  }  return (
     <>
       <header className="bg-white border-b border-emerald-300 py-4 px-6 shadow-sm flex justify-between items-center">
         <h1 className="text-2xl font-bold text-emerald-700">منصة الحلقات</h1>
